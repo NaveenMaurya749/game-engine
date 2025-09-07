@@ -1,0 +1,4 @@
+struct Engine
+{
+    void start();
+};
