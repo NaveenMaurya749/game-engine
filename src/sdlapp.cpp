@@ -22,21 +22,30 @@ void FPSCounter::UpdateCounter() {
 }
 
 SDLApplication::SDLApplication(const char* title, int width, int height) {
-    this->mWindow = SDL_CreateWindow(title, width, height, SDL_WINDOW_RESIZABLE);
+    mWindow = SDL_CreateWindow(title, width, height, SDL_WINDOW_FULLSCREEN | SDL_WINDOW_MOUSE_FOCUS);
     if (!mWindow) {
         SDL_Log("Failed to create window: %s", SDL_GetError());
     }
 
     SDL_WarpMouseInWindow(mWindow, width / 2, height / 2);
 
-    mSurface = SDL_LoadBMP("game-engine\\src\\test.bmp");
-    if (!mSurface) {
-        SDL_Log("Failed to load image: %s", SDL_GetError());
-        return;
-    } else{
-        SDL_Log("Image loaded successfully.");
+    for (int i = 0; i < SDL_GetNumRenderDrivers(); i++){
+        SDL_Log("Renderer %d: %s", i, SDL_GetRenderDriver(i));
     }
-    
+
+    mRenderer = SDL_CreateRenderer(mWindow, "vulkan");
+    if (mRenderer == nullptr) {
+        SDL_Log("Unable to create HW accelerated renderer");
+    } else {
+        SDL_Log("Initiated renderer: %s", SDL_GetRendererName(mRenderer));
+    }
+
+    // mSurface = SDL_LoadBMP("test.bmp");
+    // if (!mSurface) {
+    //     SDL_Log("Failed to load image: %s", SDL_GetError());
+    // } else{
+    //     SDL_Log("Image loaded successfully.");
+    // }
 }
 
 SDLApplication::~SDLApplication() {
@@ -66,6 +75,17 @@ void SDLApplication::EventHandler(SDL_Event* event) {
             if (keystate[SDL_SCANCODE_D]){
                 SDL_Log("D is pressed");
             }
+            if (keystate[SDL_SCANCODE_F11]){
+                if (SDL_GetWindowFlags(mWindow) & SDL_WINDOW_FULLSCREEN) {
+                    if (SDL_SetWindowFullscreen(mWindow, false))
+                        SDL_Log("Swichted out of Fullscreen mode");
+                }
+                else {
+                    if (SDL_SetWindowFullscreen(mWindow, SDL_WINDOW_FULLSCREEN))
+                        SDL_Log("Switched to Fullscreen mode");
+                }
+            }
+
             SDL_Log("Key Pressed!: %d", event->key.key);
             break;
         case SDL_EVENT_MOUSE_MOTION:
@@ -92,11 +112,22 @@ void SDLApplication::Update() {
 }
 
 void SDLApplication::Render() {
-    SDL_Surface* windowSurface = SDL_GetWindowSurface(mWindow);
-    if (windowSurface != nullptr) {
-        SDL_BlitSurface(mSurface, nullptr, windowSurface, nullptr);
-        SDL_UpdateWindowSurface(mWindow);
-    }
+    SDL_SetRenderDrawColor(mRenderer, 0x55, 0x33, 0xdd, 0xff);
+    SDL_RenderClear(mRenderer);
+
+    float fMouseXPos;
+    float fMouseYPos;
+
+    int windowX, windowY;
+
+    SDL_GetMouseState(&fMouseXPos, &fMouseYPos);
+    SDL_GetWindowSize(mWindow, &windowX, &windowY);
+
+    SDL_SetRenderDrawColor(mRenderer, 0xff, 0xff, 0xff, 0xff);
+    SDL_RenderLine(mRenderer, 0, fMouseYPos, windowX, fMouseYPos);
+    SDL_RenderLine(mRenderer, fMouseXPos, 0, fMouseXPos, windowY);
+
+    SDL_RenderPresent(mRenderer);
 }
 
 void SDLApplication::Tick() {
@@ -116,9 +147,11 @@ void SDLApplication::ControlLoop() {
     while(isRunning){
         Tick();
 
-        Uint64 elapsed = SDL_GetTicks() - fpsCounter.lastUpdateTime;
-        if(elapsed < TARGET_MSPF) {
-            SDL_Delay(TARGET_MSPF - elapsed);
+        if (!FULL_FPS){
+            Uint64 elapsed = SDL_GetTicks() - fpsCounter.lastUpdateTime;
+            if(elapsed < TARGET_MSPF) {
+                SDL_Delay(TARGET_MSPF - elapsed);
+            }
         }
 
         fpsCounter.UpdateCounter();

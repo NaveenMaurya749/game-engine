@@ -4,8 +4,8 @@
 #include <SDL3/SDL_main.h>
 #include <SDL3/SDL_surface.h>
 
+const bool   FULL_FPS   = false;
 const Uint64 TARGET_FPS = 60;
-// const Uint64 MATURATION_TIME = 1000;
 
 struct FPSCounter
 {
@@ -23,6 +23,7 @@ struct FPSCounter
 struct SDLApplication
 {
     SDL_Window* mWindow;
+    SDL_Renderer* mRenderer;
     SDL_Surface* mSurface;
     bool isRunning;
 

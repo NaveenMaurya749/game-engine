@@ -1,4 +1,7 @@
-struct Engine
+namespace GameEngine
 {
-    void start();
-};
+    class Engine
+    {
+        Engine();
+    };
+}
